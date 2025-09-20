@@ -4,7 +4,6 @@ streamlit
 python-dotenv
 chromadb==0.5.20
 pysqlite3-binary
-requests
 sentence-transformers
 llama-index
 llama-index-embeddings-huggingface
