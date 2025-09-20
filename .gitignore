@@ -1,0 +1,7 @@
+/# macOS
+.DS_Store
+/.qodo
+node_modules/
+.env
+# exclude large archives
+*.zip

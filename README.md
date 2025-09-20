@@ -1,0 +1,3 @@
+# LeadSearching
+
+Repository initialized locally.
