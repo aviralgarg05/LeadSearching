@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from pathlib import Path
 
 # Ensure modern SQLite on platforms with old sqlite3 (e.g., Streamlit Cloud)
 try:
@@ -37,18 +38,74 @@ st.set_page_config(page_title="Lead Search", page_icon="🔎", layout="wide")
 
 st.title("🔎 Lead Search (100k Sales Links)")
 
+# Helpers for zip sourcing on Cloud
+def _ensure_storage_dir() -> Path:
+    p = Path(".storage")
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+def _save_uploaded_zip(uploaded_file) -> Path:
+    storage = _ensure_storage_dir()
+    name = uploaded_file.name or "uploaded.zip"
+    # Light sanitization
+    safe_name = name.replace("/", "_").replace("\\", "_")
+    dest = storage / safe_name
+    with open(dest, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return dest
+
+
+def _download_zip(url: str) -> Path:
+    import requests
+    storage = _ensure_storage_dir()
+    dest = storage / "downloaded.zip"
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        with open(dest, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+    return dest
+
+
 with st.sidebar:
     st.header("Setup")
-    st.write("Data zip:", str(cfg.data_zip))
+
+    default_zip = Path(cfg.data_zip)
+    default_exists = default_zip.exists()
+    st.caption(f"Default zip path: {default_zip} {'(found)' if default_exists else '(missing)'}")
+
+    uploaded = st.file_uploader("Upload data zip", type=["zip"], accept_multiple_files=False, key="uploaded_zip")
+    url_default = os.getenv("DATA_ZIP_URL", "")
+    zip_url = st.text_input("Or provide a zip URL (optional)", value=url_default)
+
     if st.button("1) Ingest into SQLite"):
-        with st.spinner("Ingesting... this may take a few minutes"):
-            inserted = ingest_zip(cfg.data_zip)
-        st.success(f"Inserted {inserted} new rows into {cfg.sqlite_path}")
+        try:
+            zip_path: Path | None = None
+            if uploaded is not None:
+                zip_path = _save_uploaded_zip(uploaded)
+            elif zip_url.strip():
+                zip_path = _download_zip(zip_url.strip())
+            elif default_exists:
+                zip_path = default_zip
+
+            if not zip_path or not zip_path.exists():
+                st.error("No data zip available. Upload a zip or provide DATA_ZIP_URL, or place the zip at the default path.")
+            else:
+                with st.spinner("Ingesting... this may take a few minutes"):
+                    inserted = ingest_zip(zip_path)
+                st.success(f"Inserted {inserted} new rows into {cfg.sqlite_path}")
+        except Exception as e:
+            st.exception(e)
 
     if st.button("2) Build Vector Index"):
-        with st.spinner("Building vector index..."):
-            build_index(persist=True)
-        st.success("Vector index built.")
+        try:
+            with st.spinner("Building vector index..."):
+                build_index(persist=True)
+            st.success("Vector index built.")
+        except Exception as e:
+            st.exception(e)
 
 st.divider()
 

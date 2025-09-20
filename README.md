@@ -61,6 +61,13 @@ streamlit run app.py
   - Shimming `sqlite3` to `pysqlite3` at the top of `app.py`, `leadsearching/search/query.py`, and `leadsearching/indexing/build_index.py` before importing Chroma/LlamaIndex
 - Action: redeploy the app so the new dependency is installed and the shim takes effect.
 
+### Ingestion on Streamlit Cloud
+- The default path may not contain your zip. Use one of these options from the app sidebar:
+  - Upload the zip via the "Upload data zip" control
+  - Provide a `DATA_ZIP_URL` (as a Streamlit secret or environment variable) and paste it into the URL field
+  - Or place the zip at the default path (shown in the sidebar) if your deployment bundles it
+- After uploading or providing a URL, click "1) Ingest into SQLite", then "2) Build Vector Index".
+
 ## Example Search Results
 ```
 Query: "senior software engineer munich"
