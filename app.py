@@ -38,7 +38,6 @@ st.set_page_config(page_title="Lead Search", page_icon="🔎", layout="wide")
 
 st.title("🔎 Lead Search (100k Sales Links)")
 
-# Helpers for zip sourcing on Cloud
 def _ensure_storage_dir() -> Path:
     p = Path(".storage")
     p.mkdir(parents=True, exist_ok=True)
@@ -48,7 +47,6 @@ def _ensure_storage_dir() -> Path:
 def _save_uploaded_zip(uploaded_file) -> Path:
     storage = _ensure_storage_dir()
     name = uploaded_file.name or "uploaded.zip"
-    # Light sanitization
     safe_name = name.replace("/", "_").replace("\\", "_")
     dest = storage / safe_name
     with open(dest, "wb") as f:
@@ -76,11 +74,26 @@ with st.sidebar:
     default_exists = default_zip.exists()
     st.caption(f"Default zip path: {default_zip} {'(found)' if default_exists else '(missing)'}")
 
+    # Status indicators
+    row_count = 0
+    idx_built = (cfg.index_dir / "BUILT").exists()
+    try:
+        from leadsearching.core.db import get_conn
+        conn = get_conn(cfg.sqlite_path)
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM sales_links")
+        row_count = cur.fetchone()[0] or 0
+    except Exception:
+        row_count = 0
+    st.write(f"SQLite rows: {row_count}")
+    st.write(f"Index built: {'yes' if idx_built else 'no'}")
+
     uploaded = st.file_uploader("Upload data zip", type=["zip"], accept_multiple_files=False, key="uploaded_zip")
     url_default = os.getenv("DATA_ZIP_URL", "")
     zip_url = st.text_input("Or provide a zip URL (optional)", value=url_default)
 
-    if st.button("1) Ingest into SQLite"):
+    ingest_disabled = False
+    if st.button("1) Ingest into SQLite", disabled=ingest_disabled):
         try:
             zip_path: Path | None = None
             if uploaded is not None:
@@ -99,7 +112,8 @@ with st.sidebar:
         except Exception as e:
             st.exception(e)
 
-    if st.button("2) Build Vector Index"):
+    build_disabled = (row_count == 0)
+    if st.button("2) Build Vector Index", disabled=build_disabled):
         try:
             with st.spinner("Building vector index..."):
                 build_index(persist=True)
