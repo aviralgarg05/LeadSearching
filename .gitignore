@@ -1,12 +1,34 @@
-/# macOS
-.DS_Store
-/.qodo
-node_modules/
-.env
-# exclude large archives
-*.zip
-
-# local data and indices
+# Storage and generated files
 .storage/
 models/
-**/__pycache__/
+*.db
+*.sqlite*
+index/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+
+# Data files
+*.zip
+*.csv
+*.xlsx
+*.xls
+export/
+
+# Environment
+.env
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

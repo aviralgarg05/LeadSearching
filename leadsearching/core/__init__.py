@@ -1,1 +1,1 @@
-# package init
+# Core package

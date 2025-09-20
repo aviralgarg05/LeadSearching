@@ -36,12 +36,17 @@ def main():
             pass
         # Remove Chroma dir marker files
         if cfg.chroma_dir.exists():
-            for p in cfg.chroma_dir.rglob("*"):
-                try:
-                    if p.is_file():
-                        p.unlink()
-                except Exception:
-                    pass
+            import shutil
+            try:
+                shutil.rmtree(cfg.chroma_dir)
+            except Exception:
+                # Try to remove individual files
+                for p in cfg.chroma_dir.rglob("*"):
+                    try:
+                        if p.is_file():
+                            p.unlink()
+                    except Exception:
+                        pass
         print("Storage reset. Re-run ingest and index.")
     elif args.cmd == "query":
         se = SearchEngine()
