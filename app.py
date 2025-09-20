@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 from leadsearching.ingest_excel import ingest_zip
 from leadsearching.indexing.build_index import build_index
@@ -39,25 +40,29 @@ if st.button("Search") and q:
     if not results:
         st.info("No results found yet. Make sure you've ingested data and built the index.")
     else:
+        # Build a tabular view of results
+        rows = []
         for i, r in enumerate(results, start=1):
-            with st.container(border=True):
-                name = r.get("name") or "N/A"
-                company = r.get("company") or "N/A"
-                domain = r.get("domain") or "N/A"
-                title = r.get("title") or "N/A"
-                city = r.get("city") or "N/A"
-                email = r.get("email") or "N/A"
-                url = r.get("url")
-                score = r.get("score")
-                
-                st.markdown(f"**{i}. {name}**")
-                st.write(f"**Company:** {company} ({domain})")
-                st.write(f"**Title:** {title}")
-                st.write(f"**Location:** {city}")
-                st.write(f"**Email:** {email}")
-                if url:
-                    st.write(f"**LinkedIn:** {url}")
-                if score:
-                    st.caption(f"Relevance Score: {score:.3f}")
+            rows.append({
+                "rank": i,
+                "name": r.get("name"),
+                "title": r.get("title"),
+                "company": r.get("company"),
+                "domain": r.get("domain"),
+                "city": r.get("city"),
+                "email": r.get("email"),
+                "phone": r.get("phone"),
+                "company_phone": r.get("company_phone"),
+                "score": r.get("score"),
+                "url": r.get("url"),
+            })
+
+        df = pd.DataFrame(rows)
+        cols = ["rank", "name", "title", "company", "domain", "city", "email", "phone", "company_phone", "score", "url"]
+        df = df.reindex(columns=cols)
+
+        st.dataframe(df, use_container_width=True)
+        csv = df.to_csv(index=False)
+        st.download_button("Download CSV", data=csv, file_name="leadsearch_results.csv", mime="text/csv")
 else:
     st.info("Enter a search query and click Search to find contacts.")
