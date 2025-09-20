@@ -53,13 +53,33 @@ def main():
                         pass
         print("Storage reset. Re-run ingest and index.")
     elif args.cmd == "query":
+        # Disable telemetry for CLI usage
+        import os
+        os.environ.setdefault("CHROMA_CLIENT_TELEMETRY", "false")
+        os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
+        
         # Lazy import search engine to avoid startup overhead on help
         from leadsearching.search.query import SearchEngine
 
         se = SearchEngine()
         res = se.query(args.q, k=args.k)
-        for r in res:
-            print(r)
+        if not res:
+            print("No results found.")
+        else:
+            for i, r in enumerate(res, 1):
+                name = r.get("name", "N/A")
+                company = r.get("company", "N/A")
+                title = r.get("title", "N/A")
+                email = r.get("email", "N/A")
+                city = r.get("city", "N/A")
+                score = r.get("score")
+                
+                print(f"{i}. {name} - {company}")
+                print(f"   {title} | {city}")
+                print(f"   Email: {email}")
+                if score is not None:
+                    print(f"   Score: {score:.3f}")
+                print()
 
 
 if __name__ == "__main__":

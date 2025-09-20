@@ -1,6 +1,11 @@
 from __future__ import annotations
 from pathlib import Path
 import json
+import os
+
+# Disable telemetry for indexing
+os.environ.setdefault("CHROMA_CLIENT_TELEMETRY", "false")
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 from llama_index.core import Document, VectorStoreIndex, StorageContext
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -26,7 +31,10 @@ def fetch_rows(limit: int | None = None):
 
 
 def build_index(persist: bool = True) -> VectorStoreIndex:
-    client = chromadb.PersistentClient(path=str(cfg.chroma_dir))
+    client = chromadb.PersistentClient(
+        path=str(cfg.chroma_dir),
+        settings=chromadb.config.Settings(anonymized_telemetry=False)
+    )
     collection = client.get_or_create_collection(name="sales_links")
     vs = ChromaVectorStore(chroma_collection=collection, collection_name="sales_links")
 

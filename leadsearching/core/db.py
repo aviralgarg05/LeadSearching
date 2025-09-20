@@ -120,16 +120,43 @@ def upsert_rows(conn: sqlite3.Connection, rows: List[Dict[str, Any]]) -> int:
                     )
     
     conn.commit()
+    
+    # Rebuild FTS index if we inserted any rows
+    if inserted > 0:
+        try:
+            cur.execute("INSERT INTO sales_links_fts(sales_links_fts) VALUES('rebuild')")
+            conn.commit()
+        except sqlite3.OperationalError:
+            # FTS not available, continue without it
+            pass
+    
     return inserted
 
 
 def search_fts(conn: sqlite3.Connection, query: str, limit: int = 20) -> List[Dict[str, Any]]:
     cur = conn.cursor()
-    cur.execute(
-        "SELECT rowid AS id, rank FROM sales_links_fts WHERE sales_links_fts MATCH ? ORDER BY rank LIMIT ?",
-        (query, limit),
-    )
-    return [dict(r) for r in cur.fetchall()]
+    try:
+        cur.execute(
+            "SELECT rowid AS id, rank FROM sales_links_fts WHERE sales_links_fts MATCH ? ORDER BY rank LIMIT ?",
+            (query, limit),
+        )
+        return [dict(r) for r in cur.fetchall()]
+    except sqlite3.OperationalError as e:
+        if "no such table" in str(e).lower():
+            # FTS table doesn't exist, try to create it
+            try:
+                recreate_fts(conn)
+                cur.execute(
+                    "SELECT rowid AS id, rank FROM sales_links_fts WHERE sales_links_fts MATCH ? ORDER BY rank LIMIT ?",
+                    (query, limit),
+                )
+                return [dict(r) for r in cur.fetchall()]
+            except sqlite3.OperationalError:
+                # FTS not available or other issue, return empty results
+                return []
+        else:
+            # Some other error, re-raise
+            raise
 
 
 def get_row(conn: sqlite3.Connection, row_id: int) -> dict | None:

@@ -13,6 +13,9 @@ from leadsearching.core.config import cfg
 # Reduce noisy third‑party logs and telemetry
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+# Disable Chroma telemetry to fix telemetry warnings
+os.environ.setdefault("CHROMA_CLIENT_TELEMETRY", "false")
+os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 # Some libs respect this for warning suppression; adjust as needed
 os.environ.setdefault("PYTHONWARNINGS", "ignore")
 
@@ -37,6 +40,13 @@ with st.sidebar:
         st.success("Vector index built.")
 
 st.divider()
+
+# Cache the SearchEngine to avoid recreating on every search
+@st.cache_resource
+def get_search_engine():
+    """Create and cache the SearchEngine instance"""
+    return SearchEngine()
+
 q = st.text_input("Enter your query", placeholder="e.g., senior software engineer munich")
 
 col1, col2 = st.columns([1,1])
@@ -46,7 +56,7 @@ with col2:
     _ = st.write("")
 
 if st.button("Search") and q:
-    se = SearchEngine()
+    se = get_search_engine()
     with st.spinner("Searching..."):
         results = se.query(q, k=top_k)
     st.subheader("Results")
@@ -74,7 +84,7 @@ if st.button("Search") and q:
         cols = ["rank", "name", "title", "company", "domain", "city", "email", "phone", "company_phone", "score", "url"]
         df = df.reindex(columns=cols)
 
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width="stretch")
         csv = df.to_csv(index=False)
         st.download_button("Download CSV", data=csv, file_name="leadsearch_results.csv", mime="text/csv")
 else:
