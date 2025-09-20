@@ -1,0 +1,21 @@
+# Core data and app
+pandas==2.2.2
+openpyxl==3.1.5
+streamlit==1.37.1
+python-dotenv==1.0.1
+
+# Vector store and embeddings
+chromadb==0.5.20
+sentence-transformers==2.7.0
+
+# LlamaIndex core + integrations (local only)
+llama-index-core==0.11.19
+llama-index-embeddings-huggingface==0.3.1
+llama-index-vector-stores-chroma==0.3.0
+# Optional local LLM support (install manually if you want RAG/QA):
+# llama-index-llms-llama-cpp==0.2.0
+# llama-cpp-python==0.2.90
+
+# Utilities
+tqdm==4.66.5
+rapidfuzz==3.9.7

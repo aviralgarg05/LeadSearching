@@ -5,3 +5,8 @@ node_modules/
 .env
 # exclude large archives
 *.zip
+
+# local data and indices
+.storage/
+models/
+**/__pycache__/
