@@ -10,3 +10,4 @@ llama-index-vector-stores-chroma
 tqdm
 rapidfuzz
 # llama-cpp-python  # Uncomment if using local LLM
+pytest
