@@ -2,6 +2,16 @@ from __future__ import annotations
 from typing import List, Dict, Any
 from functools import lru_cache
 import os
+import sys
+
+# Ensure modern SQLite on platforms with old sqlite3 (e.g., Streamlit Cloud)
+try:
+    import sqlite3  # noqa: F401
+    import pysqlite3 as _pysqlite3  # type: ignore
+    sys.modules["sqlite3"] = _pysqlite3
+except Exception:
+    # If pysqlite3 isn't available locally, continue; it's included in cloud requirements.
+    pass
 
 from llama_index.core import VectorStoreIndex
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding

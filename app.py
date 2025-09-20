@@ -1,5 +1,16 @@
 import os
+import sys
 import logging
+
+# Ensure modern SQLite on platforms with old sqlite3 (e.g., Streamlit Cloud)
+try:
+    import sqlite3  # noqa: F401
+    import pysqlite3 as _pysqlite3  # type: ignore
+    sys.modules["sqlite3"] = _pysqlite3
+except Exception:
+    # If pysqlite3 isn't available locally, continue; it's included in cloud requirements.
+    pass
+
 import streamlit as st
 import pandas as pd
 

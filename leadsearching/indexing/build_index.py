@@ -2,6 +2,17 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import os
+import sys
+
+# Ensure modern SQLite on platforms with old sqlite3 (e.g., Streamlit Cloud)
+try:
+    import sqlite3  # noqa: F401
+    # If the system sqlite3 is too old, prefer pysqlite3-binary
+    import pysqlite3 as _pysqlite3  # type: ignore
+    sys.modules["sqlite3"] = _pysqlite3
+except Exception:
+    # Best-effort; if pysqlite3 is not available locally, continue.
+    pass
 
 # Disable telemetry for indexing
 os.environ.setdefault("CHROMA_CLIENT_TELEMETRY", "false")
