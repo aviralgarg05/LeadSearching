@@ -1,0 +1,34 @@
+# Storage and generated files
+.storage/
+models/
+*.db
+*.sqlite*
+index/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+ENV/
+
+# Data files
+*.zip
+*.csv
+*.xlsx
+*.xls
+export/
+
+# Environment
+.env
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
