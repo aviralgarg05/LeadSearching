@@ -1,3 +1,5 @@
+import os
+import logging
 import streamlit as st
 import pandas as pd
 
@@ -5,6 +7,17 @@ from leadsearching.ingest_excel import ingest_zip
 from leadsearching.indexing.build_index import build_index
 from leadsearching.search.query import SearchEngine
 from leadsearching.core.config import cfg
+
+"""Streamlit app for lead search with clean, tabular results."""
+
+# Reduce noisy third‑party logs and telemetry
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+# Some libs respect this for warning suppression; adjust as needed
+os.environ.setdefault("PYTHONWARNINGS", "ignore")
+
+logging.getLogger("chromadb").setLevel(logging.WARNING)
+logging.getLogger("torch").setLevel(logging.WARNING)
 
 st.set_page_config(page_title="Lead Search", page_icon="🔎", layout="wide")
 
