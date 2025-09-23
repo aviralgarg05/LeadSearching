@@ -7,8 +7,11 @@ def main():
     ap = argparse.ArgumentParser(description="LeadSearching CLI")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("ingest", help="Ingest Excel inside zip into SQLite")
-    sub.add_parser("index", help="Build vector index (Chroma)")
+    sp_ingest = sub.add_parser("ingest", help="Ingest Excel/CSV/TSV inside zip into SQLite")
+    sp_ingest.add_argument("--limit-rows", type=int, default=None, help="Limit rows to ingest for a fast start")
+
+    sp_index = sub.add_parser("index", help="Build vector index (Chroma)")
+    sp_index.add_argument("--limit", type=int, default=None, help="Limit number of rows to index for a fast start")
     sub.add_parser("reset-db", help="Delete SQLite and vector index to start fresh")
 
     sp = sub.add_parser("query", help="Query the index/FTS")
@@ -22,13 +25,13 @@ def main():
         from leadsearching.ingest_excel import ingest_zip
         from leadsearching.core.config import cfg
 
-        n = ingest_zip(cfg.data_zip)
+        n = ingest_zip(cfg.data_zip, limit_rows=args.limit_rows)
         print(f"Inserted {n} rows")
     elif args.cmd == "index":
         # Lazy import heavy index builder
         from leadsearching.indexing.build_index import build_index
 
-        build_index(persist=True)
+        build_index(persist=True, limit=args.limit)
         print("Index built.")
     elif args.cmd == "reset-db":
         # Remove SQLite DB and Chroma persistence

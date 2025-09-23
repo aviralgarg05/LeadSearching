@@ -19,7 +19,7 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 import chromadb
 
 from ..core.config import cfg
-from ..core.db import get_conn, search_fts, get_row
+from ..core.db import get_conn, search_fts
 
 # Disable Chroma telemetry
 os.environ.setdefault("CHROMA_CLIENT_TELEMETRY", "false")

@@ -40,15 +40,36 @@ st.title("🔎 Lead Search")
 with st.sidebar:
     st.header("Setup")
     st.write("Data zip:", str(cfg.data_zip))
+    st.write("Storage:", str(cfg.storage_dir))
+
+    # Lightweight readiness checks
+    try:
+        import sqlite3
+        conn = sqlite3.connect(cfg.sqlite_path)
+        cur = conn.cursor()
+        cur.execute("SELECT count(*) FROM sales_links")
+        row_count = cur.fetchone()[0]
+        conn.close()
+    except Exception:
+        row_count = 0
+    st.caption(f"SQLite rows: {row_count}")
+    index_built = (cfg.index_dir / "BUILT").exists()
+    st.caption(f"Vector index built: {'yes' if index_built else 'no'}")
+    fast_start = st.toggle("Fast start (sample only)", value=True, help="Quickly ingest a small sample and build a small index so the app is usable immediately. You can run full ingest/index later.")
+    sample_size = 200_000 if fast_start else None
+    index_limit = 150_000 if fast_start else None
+
     if st.button("1) Ingest into SQLite"):
         with st.spinner("Ingesting... this may take a few minutes"):
-            inserted = ingest_zip(cfg.data_zip)
+            inserted = ingest_zip(cfg.data_zip, limit_rows=sample_size)
         st.success(f"Inserted {inserted} new rows into {cfg.sqlite_path}")
+        st.rerun()
 
     if st.button("2) Build Vector Index"):
         with st.spinner("Building vector index..."):
-            build_index(persist=True)
+            build_index(persist=True, limit=index_limit)
         st.success("Vector index built.")
+        st.rerun()
 
 st.divider()
 

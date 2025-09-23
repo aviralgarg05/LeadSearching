@@ -41,7 +41,7 @@ def fetch_rows(limit: int | None = None):
         yield dict(zip(cols, row))
 
 
-def build_index(persist: bool = True) -> VectorStoreIndex:
+def build_index(persist: bool = True, limit: int | None = None) -> VectorStoreIndex:
     client = chromadb.PersistentClient(
         path=str(cfg.chroma_dir),
         settings=chromadb.config.Settings(anonymized_telemetry=False)
@@ -52,7 +52,8 @@ def build_index(persist: bool = True) -> VectorStoreIndex:
     embed_model = HuggingFaceEmbedding(model_name=cfg.embedding_model)
 
     docs: list[Document] = []
-    for r in fetch_rows():
+    processed = 0
+    for r in fetch_rows(limit=limit):
         # Parse raw_json to gather attributes for richer context
         try:
             raw = json.loads(r.get("raw_json") or "{}")
@@ -94,9 +95,15 @@ def build_index(persist: bool = True) -> VectorStoreIndex:
 
         meta = {"id": r["id"], "url": url, "title": title or r.get("title")}
         docs.append(Document(text=text, metadata=meta))
+        processed += 1
+        # Flush in chunks to avoid large memory and speed up
+        if len(docs) >= 50_000:
+            storage_context = StorageContext.from_defaults(vector_store=vs)
+            VectorStoreIndex.from_documents(docs, storage_context=storage_context, embed_model=embed_model)
+            docs.clear()
 
     storage_context = StorageContext.from_defaults(vector_store=vs)
-    index = VectorStoreIndex.from_documents(docs, storage_context=storage_context, embed_model=embed_model)
+    index = VectorStoreIndex.from_documents(docs, storage_context=storage_context, embed_model=embed_model) if docs else VectorStoreIndex.from_vector_store(vs, embed_model=embed_model)
 
     if persist:
         # Chroma persists automatically; keep a flag file

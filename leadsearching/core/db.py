@@ -11,6 +11,19 @@ def get_conn(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def set_bulk_ingest_pragmas(conn: sqlite3.Connection) -> None:
+    """Speed up large bulk inserts. Use only during ingestion."""
+    cur = conn.cursor()
+    try:
+        cur.execute("PRAGMA journal_mode=MEMORY;")
+        cur.execute("PRAGMA synchronous=OFF;")
+        cur.execute("PRAGMA temp_store=MEMORY;")
+        # Negative value means KB units. -200000 ~= 200MB cache
+        cur.execute("PRAGMA cache_size=-200000;")
+    finally:
+        conn.commit()
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     
@@ -72,6 +85,23 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def drop_attribute_index(conn: sqlite3.Connection) -> None:
+    cur = conn.cursor()
+    cur.execute("DROP INDEX IF EXISTS idx_sales_link_attributes_link_id;")
+    conn.commit()
+
+
+def create_attribute_index(conn: sqlite3.Connection) -> None:
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_sales_link_attributes_link_id 
+        ON sales_link_attributes (link_id);
+        """
+    )
+    conn.commit()
+
+
 def quick_check(conn: sqlite3.Connection) -> bool:
     """Check if the database is not corrupted."""
     try:
@@ -86,7 +116,10 @@ def quick_check(conn: sqlite3.Connection) -> bool:
 def upsert_rows(conn: sqlite3.Connection, rows: List[Dict[str, Any]]) -> int:
     cur = conn.cursor()
     inserted = 0
-    
+
+    # Batch attribute inserts to reduce per-row overhead
+    attr_buffer: list[tuple[int, str, str]] = []
+
     for r in rows:
         # Insert main record
         cur.execute(
@@ -106,19 +139,22 @@ def upsert_rows(conn: sqlite3.Connection, rows: List[Dict[str, Any]]) -> int:
         if cur.rowcount:
             inserted += 1
             link_id = cur.lastrowid
-            
-            # Insert attributes
+
+            # Queue attributes
             attrs = r.get("attrs", {})
             for key, value in attrs.items():
                 if value is not None:
-                    cur.execute(
-                        """
-                        INSERT INTO sales_link_attributes (link_id, key, value)
-                        VALUES (?, ?, ?)
-                        """,
-                        (link_id, key, str(value))
-                    )
-    
+                    attr_buffer.append((link_id, key, str(value)))
+
+    if attr_buffer:
+        cur.executemany(
+            """
+            INSERT INTO sales_link_attributes (link_id, key, value)
+            VALUES (?, ?, ?)
+            """,
+            attr_buffer,
+        )
+
     conn.commit()
     
     # Rebuild FTS index if we inserted any rows

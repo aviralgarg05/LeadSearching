@@ -1,6 +1,6 @@
 # LeadSearching
 
-End-to-end local search over a 100k-row sales links dataset using Python, SQLite FTS, LlamaIndex with HuggingFace embeddings + Chroma, and a simple Streamlit UI.
+End-to-end local search over large lead datasets (100k to 8M+ rows) using Python, SQLite FTS5, LlamaIndex with HuggingFace embeddings + Chroma, and a simple Streamlit UI.
 
 ## ✅ System Status
 **FULLY OPERATIONAL** - Perfect searching with complete structured data!
@@ -28,20 +28,26 @@ pip install -U pip
 pip install -r requirements.txt
 ```
 
-2) Put your zip in the project root:
-`100k Sales Link 7 file-20250920T133656Z-1-001.zip`
+2) Place your dataset zip anywhere accessible. You can configure the path via env (see below). Example:
+`8 MILLION LEADS-20250921T154416Z-1-001.zip`
 
 3) (Optional) Set env vars in `.env` if desired:
+- `STORAGE_DIR` Directory for SQLite and Chroma persistence (default: `.storage`)
+- `DATA_ZIP` Path to your dataset zip
 - `EMBEDDING_MODEL` (default: sentence-transformers/all-MiniLM-L6-v2)
 - `LLAMA_CPP_MODEL` path to a local GGUF model to enable local LLM
 
 ## Usage
 
-CLI - **Recommended for testing**
+CLI - Fast start options available
 ```bash
 # Data pipeline
-python cli.py ingest      # parse Excel in zip -> SQLite
-python cli.py index       # build Chroma vector index
+python cli.py ingest                    # parse Excel/CSV/TSV in zip -> SQLite
+python cli.py index                     # build Chroma vector index
+
+# Fast start: ingest only a sample, build a partial index for quick usability
+python cli.py ingest --limit-rows 200000
+python cli.py index --limit 150000
 
 # Search with structured results
 python cli.py query "senior software engineer munich" --k 5
@@ -54,12 +60,19 @@ Streamlit UI
 streamlit run app.py
 ```
 
+In the sidebar, enable "Fast start (sample only)" to quickly ingest a subset and build a small index. You can later re-run the buttons with Fast start off to process the full dataset.
+
 ## Deployment notes (Streamlit Cloud)
 - If you see a runtime error like: "Your system has an unsupported version of sqlite3. Chroma requires sqlite3 >= 3.35.0.", it's due to the managed environment using an older sqlite3.
 - This repo is configured to fix that automatically by:
    - Adding `pysqlite3-binary` to `requirements.txt`
    - Shimming `sqlite3` to `pysqlite3` at the top of `app.py`, `leadsearching/search/query.py`, and `leadsearching/indexing/build_index.py` before importing Chroma/LlamaIndex
 - Action: redeploy the app so the new dependency is installed and the shim takes effect.
+
+### Performance tips
+- Large ingests are optimized with SQLite PRAGMAs, batched inserts, and dropping/recreating selective indexes.
+- Storage location matters: use a fast local disk for `STORAGE_DIR`.
+- Build the vector index in batches; the builder streams docs to keep memory low.
 
 ## Example Search Results
 ```
